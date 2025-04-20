@@ -1,41 +1,54 @@
 {
   "expo": {
-    "name": "Turdogrammeexpo",
-    "slug": "Turdogrammeexpo",
+    "name": "Turdogramme",
+    "slug": "turdogramme",
     "version": "1.0.0",
+    "sdkVersion": "52.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "icon": "./assets/TurdogrammeIcon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/Lord_Turdingham.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6A0DAD"
+    },
+    "android": {
+      "package": "com.anonymous.turdogramme",
+      "permissions": [
+        "INTERNET"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "https",
+              "host": "wa.me",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
     "ios": {
       "supportsTablet": true
     },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "137b820f-3c87-448a-a93a-c699f91e8176"
       }
     },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
-        }
-      ]
+    "platforms": [
+      "ios",
+      "android"
     ],
-    "experiments": {
-      "typedRoutes": true
-    }
+    "owner": "dmitry92"
   }
 }

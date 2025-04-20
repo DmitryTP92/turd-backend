@@ -1,0 +1,80 @@
+{
+  "welcome": {
+    "title": "🔥 터도그램에 오신 것을 환영합니다 🔥",
+    "subtitle": "디지털 똥의 미래 💩",
+    "button": "똥 투척하기 💩",
+    "placeholder_secret": "비밀 코드를 입력하세요...",
+    "activate_secret": "시크릿 모드 활성화",
+    "placeholder_phone": "전화번호를 입력하세요",
+    "register": "가입하기",
+    "view_received": "📬 받은 똥 보기",
+    "unlimited_activated": "무제한 모드가 활성화되었습니다!",
+    "invalid_code": "비밀 코드가 잘못되었습니다.",
+    "enter_phone": "전화번호를 입력해주세요.",
+    "enter_phone_international": "국제 형식의 전화번호를 입력해주세요 (예: +821012345678)"
+  },
+  "select": {
+    "title": "똥을 선택하세요 💩",
+    "buy_button": "터드코인 구매",
+    "back": "뒤로가기"
+  },
+  "send": {
+    "title": "받는 사람 번호 입력 📲",
+    "balance": "💰 잔액: {{balance}} 터드코인",
+    "cost": {
+      "turd": "똥 비용: {{cost}} 💰",
+      "extra": "추가 단어: {{extra}} 💰"
+    },
+    "placeholder_number": "전화번호를 입력하세요...",
+    "placeholder_message": "메시지를 입력하세요 (5단어 무료)...",
+    "send_button": "💩 똥 보내기 💩",
+    "back": "뒤로가기",
+    "not_enough": "터드코인이 부족합니다! 더 구매하세요.",
+    "enter_number": "전화번호를 입력하고 똥을 선택하세요.",
+    "fail": "메시지 전송 실패.",
+    "success": "메시지 전송 성공!",
+    "method_inapp": "앱 내 전송",
+    "method_whatsapp": "WhatsApp",
+    "invalid_number": "올바른 국제 전화번호를 입력해주세요."
+  },
+  "buy": {
+    "title": "터드코인 구매",
+    "buy_50": "50 터드코인 구매",
+    "buy_100": "100 터드코인 구매",
+    "buy_300": "300 터드코인 구매",
+    "option1": "50 터드코인 구매 - ₩1300",
+    "option2": "100 터드코인 구매 - ₩2000",
+    "option3": "300 터드코인 구매 - ₩3200",
+    "gift_button": "🎁 터드코인 선물하기 🎁",
+    "success": "{{amount}} 터드코인이 추가되었습니다! 🎉",
+    "checkout_error": "결제 오류가 발생했습니다. 다시 시도해주세요.",
+    "payment_failed": "결제에 실패했습니다. 나중에 다시 시도해주세요.",
+    "coins_50": "50 터드코인 구매 - ₩1300",
+    "coins_100": "100 터드코인 구매 - ₩2000",
+    "coins_300": "300 터드코인 구매 - ₩3200"
+  },
+  "gift": {
+    "title": "🎁 터드코인 선물하기",
+    "placeholder_number": "받는 사람 전화번호 입력",
+    "placeholder_amount": "선물할 금액",
+    "send_button": "선물 보내기",
+    "back": "뒤로가기",
+    "invalid_input": "유효한 전화번호와 1 이상의 금액을 입력해주세요.",
+    "error_invalid_number": "유효한 국제 전화번호를 입력해주세요.",
+    "invalid_format": "예: +821012345678 형식의 유효한 번호를 입력해주세요.",
+    "success": "🎉 {{amount}} 터드코인을 성공적으로 보냈습니다!",
+    "fail": "선물 전송 실패."
+  },
+  "received": {
+    "none": "💩 아직 받은 똥이 없습니다 💩",
+    "none_sub": "조금 뒤에 다시 확인해보세요. 냄새나는 선물이 올지도 몰라요.",
+    "incoming": "💩 똥이 도착했습니다! 💩",
+    "anonymous": "익명의 선물이 도착했습니다..."
+  },
+  "common": {
+    "flush": "변기에 흘려보냈습니다 🚽",
+    "saved": "메모리 뱅크에 저장했습니다 💾",
+    "back": "뒤로가기",
+    "error_generic": "문제가 발생했습니다."
+  }
+}

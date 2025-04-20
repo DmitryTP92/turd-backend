@@ -1,0 +1,80 @@
+{
+  "welcome": {
+    "title": "🔥 WELCOME TO TURDOGRAMME 🔥",
+    "subtitle": "The Future of Digital Turds 💩",
+    "button": "Drop Some Turds 💩",
+    "placeholder_secret": "Enter Secret Code...",
+    "activate_secret": "Activate Secret Mode",
+    "placeholder_phone": "Enter your phone number",
+    "register": "Register",
+    "view_received": "📬 View Received Turds",
+    "unlimited_activated": "Unlimited mode activated!",
+    "invalid_code": "Invalid secret code.",
+    "enter_phone": "Please enter your phone number.",
+    "enter_phone_international": "Please use international phone format (e.g. +1234567890)"
+  },
+  "select": {
+    "title": "Select Your Turd 💩",
+    "buy_button": "Buy TurdCoins",
+    "back": "Back"
+  },
+  "send": {
+    "title": "Enter Recipient's Number 📲",
+    "balance": "💰 Balance: {{balance}} TurdCoins",
+    "cost": {
+      "turd": "Turd Cost: {{cost}} 💰",
+      "extra": "Extra Words: {{extra}} 💰"
+    },
+    "placeholder_number": "Enter number...",
+    "placeholder_message": "Add a message (5 words free)...",
+    "send_button": "💩 Send Turd 💩",
+    "back": "Back",
+    "not_enough": "Not enough TurdCoins! Buy more to continue.",
+    "enter_number": "Please enter a phone number and select a turd.",
+    "fail": "Failed to send message.",
+    "success": "Message sent successfully!",
+    "method_inapp": "In-App Send",
+    "method_whatsapp": "WhatsApp",
+    "invalid_number": "Please enter a valid international phone number."
+  },
+  "buy": {
+    "title": "Buy TurdCoins",
+    "buy_50": "Buy 50 TurdCoins",
+    "buy_100": "Buy 100 TurdCoins",
+    "buy_300": "Buy 300 TurdCoins",
+    "option1": "Buy 50 TurdCoins - £1",
+    "option2": "Buy 100 TurdCoins - £1.50",
+    "option3": "Buy 300 TurdCoins - £2",
+    "gift_button": "🎁 Gift TurdCoins 🎁",
+    "success": "{{amount}} TurdCoins added! 🎉",
+    "checkout_error": "Checkout failed. Please try again.",
+    "payment_failed": "Payment failed. Try again later.",
+    "coins_50": "Buy 50 TurdCoins - £1",
+    "coins_100": "Buy 100 TurdCoins - £1.50",
+    "coins_300": "Buy 300 TurdCoins - £2"
+  },
+  "gift": {
+    "title": "🎁 Gift TurdCoins",
+    "placeholder_number": "Enter recipient's phone number...",
+    "placeholder_amount": "Enter amount to gift...",
+    "send_button": "🎁 Send Gift",
+    "back": "Back",
+    "invalid_input": "Please enter a valid phone number and gift amount.",
+    "error_invalid_number": "Please enter a valid international phone number.",
+    "invalid_format": "Please enter a valid international phone number (e.g., +123456789).",
+    "success": "🎉 {{amount}} TurdCoins sent successfully!",
+    "fail": "Failed to send gift."
+  },
+  "received": {
+    "none": "💩 No Turds Yet 💩",
+    "none_sub": "Check back later. A stink might be on the way.",
+    "incoming": "💩 Turd Incoming! 💩",
+    "anonymous": "An anonymous gift has arrived..."
+  },
+  "common": {
+    "flush": "Flushed! 🚽",
+    "saved": "Saved to memory bank! 💾",
+    "back": "Back",
+    "error_generic": "Something went wrong."
+  }
+}

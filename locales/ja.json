@@ -1,0 +1,80 @@
+{
+  "welcome": {
+    "title": "🔥 TURDOGRAMMEへようこそ 🔥",
+    "subtitle": "デジタルうんちの未来 💩",
+    "button": "うんちを投下 💩",
+    "placeholder_secret": "シークレットコードを入力...",
+    "activate_secret": "シークレットモードを有効化",
+    "placeholder_phone": "電話番号を入力",
+    "register": "登録する",
+    "view_received": "📬 受信したうんちを見る",
+    "unlimited_activated": "無制限モードが有効になりました！",
+    "invalid_code": "シークレットコードが無効です。",
+    "enter_phone": "電話番号を入力してください。",
+    "enter_phone_international": "国際形式で電話番号を入力してください（例: +819012345678）"
+  },
+  "select": {
+    "title": "うんちを選んでください 💩",
+    "buy_button": "TurdCoinsを購入",
+    "back": "戻る"
+  },
+  "send": {
+    "title": "受信者の番号を入力 📲",
+    "balance": "💰 残高: {{balance}} TurdCoins",
+    "cost": {
+      "turd": "うんちのコスト: {{cost}} 💰",
+      "extra": "追加の単語: {{extra}} 💰"
+    },
+    "placeholder_number": "番号を入力...",
+    "placeholder_message": "メッセージを追加 (5語無料)...",
+    "send_button": "💩 うんちを送信 💩",
+    "back": "戻る",
+    "not_enough": "TurdCoinsが足りません！追加で購入してください。",
+    "enter_number": "番号とうんちを選択してください。",
+    "fail": "メッセージの送信に失敗しました。",
+    "success": "メッセージが送信されました！",
+    "method_inapp": "アプリ内で送信",
+    "method_whatsapp": "WhatsApp",
+    "invalid_number": "有効な国際電話番号を入力してください。"
+  },
+  "buy": {
+    "title": "TurdCoinsを購入",
+    "buy_100": "100 TurdCoinsを購入",
+    "buy_500": "500 TurdCoinsを購入",
+    "buy_1000": "1000 TurdCoinsを購入",
+    "option1": "100 TurdCoinsを購入 - ¥150",
+    "option2": "500 TurdCoinsを購入 - ¥600",
+    "option3": "1000 TurdCoinsを購入 - ¥1000",
+    "gift_button": "🎁 TurdCoinsをプレゼントする",
+    "success": "{{amount}} TurdCoinsを追加しました 🎉",
+    "checkout_error": "チェックアウトエラーが発生しました。もう一度お試しください。",
+    "payment_failed": "支払いに失敗しました。後でもう一度お試しください。",
+    "coins_50": "50 TurdCoinsを購入 - ¥150",
+    "coins_100": "100 TurdCoinsを購入 - ¥300",
+    "coins_300": "300 TurdCoinsを購入 - ¥600"
+  },
+  "gift": {
+    "title": "🎁 TurdCoinsをプレゼント",
+    "placeholder_number": "受信者の電話番号を入力",
+    "placeholder_amount": "プレゼントする金額",
+    "send_button": "プレゼントを送信",
+    "back": "戻る",
+    "invalid_input": "有効な番号と1以上の金額を入力してください。",
+    "error_invalid_number": "有効な国際電話番号を入力してください。",
+    "invalid_format": "有効な国際電話番号を入力してください（例: +819012345678）",
+    "success": "🎉 {{amount}} TurdCoinsをプレゼントしました！",
+    "fail": "プレゼントの送信に失敗しました。"
+  },
+  "received": {
+    "none": "💩 まだうんちは届いていません 💩",
+    "none_sub": "後でもう一度確認してください。臭いの贈り物が届くかも？",
+    "incoming": "💩 うんちが届きました！ 💩",
+    "anonymous": "匿名の贈り物が届きました..."
+  },
+  "common": {
+    "flush": "トイレに流しました 🚽",
+    "saved": "思い出バンクに保存しました 💾",
+    "back": "戻る",
+    "error_generic": "問題が発生しました。"
+  }
+}

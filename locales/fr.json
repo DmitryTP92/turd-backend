@@ -1,0 +1,80 @@
+{
+  "welcome": {
+    "title": "🔥 BIENVENUE SUR TURDOGRAMME 🔥",
+    "subtitle": "Le futur des crottes numériques 💩",
+    "button": "Lâcher des crottes 💩",
+    "placeholder_secret": "Saisir le code secret...",
+    "activate_secret": "Activer le mode secret",
+    "placeholder_phone": "Saisir votre numéro de téléphone",
+    "register": "S'inscrire",
+    "view_received": "📬 Voir les crottes reçues",
+    "unlimited_activated": "Mode illimité activé !",
+    "invalid_code": "Code secret invalide.",
+    "enter_phone": "Veuillez entrer votre numéro de téléphone.",
+    "enter_phone_international": "Veuillez utiliser le format international (ex : +33123456789)"
+  },
+  "select": {
+    "title": "Choisis ta crotte 💩",
+    "buy_button": "Acheter des TurdCoins",
+    "back": "Retour"
+  },
+  "send": {
+    "title": "Numéro du destinataire 📲",
+    "balance": "💰 Solde : {{balance}} TurdCoins",
+    "cost": {
+      "turd": "Coût de la crotte : {{cost}} 💰",
+      "extra": "Mots supplémentaires : {{extra}} 💰"
+    },
+    "placeholder_number": "Saisir le numéro...",
+    "placeholder_message": "Ajoutez un message (5 mots gratuits)...",
+    "send_button": "💩 Envoyer la crotte 💩",
+    "back": "Retour",
+    "not_enough": "Pas assez de TurdCoins ! Achetez-en plus.",
+    "enter_number": "Veuillez entrer un numéro et sélectionner une crotte.",
+    "fail": "Échec de l'envoi du message.",
+    "success": "Message envoyé avec succès !",
+    "method_inapp": "Envoi dans l'application",
+    "method_whatsapp": "WhatsApp",
+    "invalid_number": "Veuillez saisir un numéro de téléphone valide au format international."
+  },
+  "buy": {
+    "title": "Acheter des TurdCoins",
+    "buy_100": "Acheter 50 TurdCoins",
+    "buy_500": "Acheter 100 TurdCoins",
+    "buy_1000": "Acheter 300 TurdCoins",
+    "option1": "Acheter 50 TurdCoins - 1£",
+    "option2": "Acheter 100 TurdCoins - 1.50£",
+    "option3": "Acheter 300 TurdCoins - 2£",
+    "gift_button": "🎁 Offrir des TurdCoins 🎁",
+    "success": "{{amount}} TurdCoins ajoutés ! 🎉",
+    "checkout_error": "Erreur de paiement. Veuillez réessayer.",
+    "payment_failed": "Le paiement a échoué. Réessayez plus tard.",
+    "coins_50": "Acheter 50 TurdCoins - 1£",
+    "coins_100": "Acheter 100 TurdCoins - 1.50£",
+    "coins_300": "Acheter 300 TurdCoins - 2£"
+  },
+  "gift": {
+    "title": "🎁 Offrir des TurdCoins",
+    "placeholder_number": "Saisir le numéro du destinataire...",
+    "placeholder_amount": "Montant à offrir...",
+    "send_button": "🎁 Envoyer le cadeau",
+    "back": "Retour",
+    "invalid_input": "Veuillez saisir un numéro valide et un montant supérieur à 0.",
+    "error_invalid_number": "Veuillez entrer un numéro international valide.",
+    "invalid_format": "Veuillez entrer un numéro valide (ex : +33123456789).",
+    "success": "🎉 Vous avez offert {{amount}} TurdCoins avec succès !",
+    "fail": "Échec de l'envoi du cadeau."
+  },
+  "received": {
+    "none": "💩 Pas encore de crottes 💩",
+    "none_sub": "Revenez plus tard. Une puanteur est peut-être en route.",
+    "incoming": "💩 Crotte entrante ! 💩",
+    "anonymous": "Un cadeau anonyme est arrivé..."
+  },
+  "common": {
+    "flush": "Crotte évacuée ! 🚽",
+    "saved": "Enregistrée dans la mémoire 💾",
+    "back": "Retour",
+    "error_generic": "Une erreur s'est produite."
+  }
+}
