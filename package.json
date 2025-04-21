@@ -1,27 +1,17 @@
 {
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "express": "^4.21.2",
-    "firebase-admin": "^13.2.0",
-    "stripe": "^17.7.0"
-  },
+  "name": "turd-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "name": "turd-backend",
-  "description": "Stripe back end for turdogramme",
-  "version": "1.0.0",
-  "main": "server.js",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/DmitryTP92/turdogramme-backend.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/DmitryTP92/turdogramme-backend/issues"
-  },
-  "homepage": "https://github.com/DmitryTP92/turdogramme-backend#readme"
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "expo-server-sdk": "^3.14.0",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.2.0",
+    "stripe": "^17.7.0"
+  }
 }
