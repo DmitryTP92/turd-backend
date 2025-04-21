@@ -30,9 +30,3 @@ app.post('/create-checkout-session', async (req, res) => {
     res.status(500).json({ error: 'Failed to create Stripe session' });
   }
 });
-
-<<<<<<< HEAD
-app.listen(4242, () => console.log('🚀 Turdpire backend running on port 4242'));
-=======
-app.listen(4242, () => console.log('🚀 Turdpire backend running on port 4242'));
->>>>>>> 77acc8376384c24c032dbd9d50f8a0f1c56d458a
