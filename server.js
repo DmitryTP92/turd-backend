@@ -9,7 +9,6 @@ const expo = new Expo();
 const admin = require("firebase-admin");
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
-// Parse Firebase credentials from environment variable
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
 
 admin.initializeApp({
@@ -30,9 +29,7 @@ app.post('/create-checkout-session', async (req, res) => {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: 'turdogramme://purchase-success',
       cancel_url: 'turdogramme://purchase-cancel',
-      metadata: {
-        phoneNumber
-      }
+      metadata: { phoneNumber }
     });
     res.json({ sessionUrl: session.url });
   } catch (error) {
@@ -50,6 +47,7 @@ app.post('/webhook', (req, res) => {
     console.error("Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const phone = session.metadata?.phoneNumber;
@@ -58,19 +56,19 @@ app.post('/webhook', (req, res) => {
     if (amount === 1) coins = 50;
     else if (amount === 1.5) coins = 100;
     else if (amount === 2) coins = 300;
+
     if (phone && coins > 0) {
       const userId = `user_${phone}`;
       db.collection("users").doc(userId).update({
         turdCoins: admin.firestore.FieldValue.increment(coins),
-      })
-      .then(() => {
+      }).then(() => {
         console.log(`💰 Added ${coins} TurdCoins to ${userId}`);
-      })
-      .catch(err => {
+      }).catch(err => {
         console.error("🔥 Failed to update TurdCoins:", err);
       });
     }
   }
+
   res.status(200).send('Webhook received');
 });
 
@@ -79,6 +77,7 @@ app.post('/gift-turds', async (req, res) => {
   if (!senderPhone || !recipientPhone || !amount || amount <= 0) {
     return res.status(400).json({ error: "Missing or invalid data." });
   }
+
   const senderId = `user_${formatPhoneNumber(senderPhone)}`;
   const recipientId = `user_${formatPhoneNumber(recipientPhone)}`;
 
@@ -125,6 +124,7 @@ app.post('/register', async (req, res) => {
   if (!phoneNumber) {
     return res.status(400).json({ error: "Phone number is required" });
   }
+
   try {
     const formattedPhone = formatPhoneNumber(phoneNumber);
     const userId = `user_${formattedPhone}`;
@@ -134,6 +134,7 @@ app.post('/register', async (req, res) => {
       turdCoins: 100,
       isUnlimited: false,
     }, { merge: true });
+
     console.log("✅ User successfully registered:", userId);
     res.status(200).json({ success: true, userId });
   } catch (err) {
@@ -144,17 +145,21 @@ app.post('/register', async (req, res) => {
 
 app.post('/inapp-send', async (req, res) => {
   const { senderId, recipientNumber, gif, message } = req.body;
+
   try {
     console.log(`In-app send request: ${senderId} -> ${recipientNumber}, gif: ${gif}, message: ${message}`);
     const formatted = formatPhoneNumber(recipientNumber);
     const recipientId = `user_${formatted}`;
     const recipientRef = db.collection("users").doc(recipientId);
     const recipientSnap = await recipientRef.get();
+
     if (!recipientSnap.exists) {
       return res.status(400).json({ success: false, message: "Recipient not found." });
     }
+
     const recipientData = recipientSnap.data();
     await storeReceivedTurd(recipientNumber, gif, message, senderId);
+
     if (recipientData.expoPushToken && Expo.isExpoPushToken(recipientData.expoPushToken)) {
       await expo.sendPushNotificationsAsync([{
         to: recipientData.expoPushToken,
@@ -165,10 +170,12 @@ app.post('/inapp-send', async (req, res) => {
         data: { screen: "ReceivedTurd" },
         badge: 1
       }]);
+
       console.log("📲 Push notification sent!");
     } else {
       console.log("⚠️ No valid Expo token found for recipient.");
     }
+
     res.status(200).json({ success: true, message: "Turd sent successfully in-app!" });
   } catch (error) {
     console.error("Error sending turd:", error);
@@ -178,14 +185,14 @@ app.post('/inapp-send', async (req, res) => {
 
 app.post('/whatsapp-send', async (req, res) => {
   const { fromPhone, toPhone, gif, message } = req.body;
+
   try {
     console.log(`WhatsApp send request: ${fromPhone} -> ${toPhone}, gif: ${gif}, message: ${message}`);
-    const url = generateWhatsAppUrl(toPhone, gif, message);
-    console.log("✅ WhatsApp redirect URL generated:", url);
-    res.status(200).json({ success: true, message: "Turd prepared for WhatsApp redirection!", whatsappUrl: url });
+    const url = await sendTurdViaWhatsApp(toPhone, gif, message);
+    res.status(200).json({ success: true, message: "Turd prepared for WhatsApp!", url });
   } catch (error) {
-    console.error("Error generating WhatsApp URL:", error);
-    res.status(500).json({ success: false, message: "Failed to generate WhatsApp redirect URL." });
+    console.error("Error preparing WhatsApp turd:", error);
+    res.status(500).json({ success: false, message: "Failed to prepare WhatsApp turd." });
   }
 });
 
@@ -203,6 +210,7 @@ const storeReceivedTurd = async (recipientPhoneNumber, gifUrl, message = "", sen
         anonymous: true
       }
     };
+
     await recipientRef.set(turdData, { merge: true });
     console.log("Turd successfully stored in Firestore.");
   } catch (error) {
@@ -218,11 +226,13 @@ const formatPhoneNumber = (phoneNumber) => {
   return cleaned;
 };
 
-const generateWhatsAppUrl = (toPhone, gif, message) => {
+const sendTurdViaWhatsApp = async (toPhone, gif, message) => {
   const gifUrl = `${BASE_GIF_URL}${gif}`;
   const fullMessage = `${message}\n\n💩 ${gifUrl}`;
   const encodedMessage = encodeURIComponent(fullMessage);
-  return `https://wa.me/${toPhone}?text=${encodedMessage}`;
+  const whatsappUrl = `https://wa.me/${toPhone}?text=${encodedMessage}`;
+  console.log("📎 WhatsApp URL (send manually or from client):", whatsappUrl);
+  return whatsappUrl;
 };
 
 const BASE_GIF_URL = "https://i.postimg.cc/";
