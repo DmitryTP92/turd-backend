@@ -12,7 +12,6 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 // Parse Firebase credentials from environment variable
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
 
-
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
@@ -181,11 +180,12 @@ app.post('/whatsapp-send', async (req, res) => {
   const { fromPhone, toPhone, gif, message } = req.body;
   try {
     console.log(`WhatsApp send request: ${fromPhone} -> ${toPhone}, gif: ${gif}, message: ${message}`);
-    await sendTurdViaWhatsApp(toPhone, gif, message);
-    res.status(200).json({ success: true, message: "Turd sent successfully on WhatsApp!" });
+    const url = generateWhatsAppUrl(toPhone, gif, message);
+    console.log("✅ WhatsApp redirect URL generated:", url);
+    res.status(200).json({ success: true, message: "Turd prepared for WhatsApp redirection!", whatsappUrl: url });
   } catch (error) {
-    console.error("Error sending turd on WhatsApp:", error);
-    res.status(500).json({ success: false, message: "Failed to send turd on WhatsApp." });
+    console.error("Error generating WhatsApp URL:", error);
+    res.status(500).json({ success: false, message: "Failed to generate WhatsApp redirect URL." });
   }
 });
 
@@ -218,17 +218,11 @@ const formatPhoneNumber = (phoneNumber) => {
   return cleaned;
 };
 
-const sendTurdViaWhatsApp = async (toPhone, gif, message) => {
+const generateWhatsAppUrl = (toPhone, gif, message) => {
   const gifUrl = `${BASE_GIF_URL}${gif}`;
   const fullMessage = `${message}\n\n💩 ${gifUrl}`;
   const encodedMessage = encodeURIComponent(fullMessage);
-  const whatsappUrl = `https://wa.me/${toPhone}?text=${encodedMessage}`;
-  try {
-    await fetch(whatsappUrl);
-    console.log("Turd sent via WhatsApp successfully.");
-  } catch (error) {
-    console.error("Error sending turd via WhatsApp:", error);
-  }
+  return `https://wa.me/${toPhone}?text=${encodedMessage}`;
 };
 
 const BASE_GIF_URL = "https://i.postimg.cc/";
