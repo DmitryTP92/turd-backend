@@ -7,9 +7,10 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { Expo } = require("expo-server-sdk");
 const expo = new Expo();
 const admin = require("firebase-admin");
-const serviceAccount = require("./serviceAccountKey.json");
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
+// Parse Firebase credentials from environment variable
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
