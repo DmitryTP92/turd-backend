@@ -1,83 +1,95 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const express = require('express');
-const app = express();
-const cors = require('cors');
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const { Expo } = require("expo-server-sdk");
-const expo = new Expo();
+const express = require("express");
+const cors = require("cors");
 const admin = require("firebase-admin");
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
-
-const db = admin.firestore();
+const { Expo } = require("expo-server-sdk");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+const app = express();
+const expo = new Expo();
 
 app.use(cors());
 app.use('/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
-app.post('/create-checkout-session', async (req, res) => {
-  const { priceId, phoneNumber } = req.body;
+// 🔐 Firebase Admin Setup
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+const db = admin.firestore();
+
+// 🧼 Utils
+const formatPhoneNumber = (num) => {
+  const cleaned = num.replace(/[\s\-()]/g, "");
+  return cleaned.startsWith("+") ? cleaned : "+" + cleaned.replace(/^0+/, "");
+};
+
+// 💩 In-app Turd Sending
+app.post("/inapp-send", async (req, res) => {
+  const { senderId, recipientNumber, gif, message = "" } = req.body;
+
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: 'turdogramme://purchase-success',
-      cancel_url: 'turdogramme://purchase-cancel',
-      metadata: { phoneNumber }
-    });
-    res.json({ sessionUrl: session.url });
-  } catch (error) {
-    console.error("Stripe session creation failed:", error.message);
-    res.status(500).json({ error: 'Failed to create Stripe session' });
-  }
-});
+    const formatted = formatPhoneNumber(recipientNumber);
+    const recipientId = `user_${formatted}`;
+    const recipientRef = db.collection("users").doc(recipientId);
+    const recipientSnap = await recipientRef.get();
+    if (!recipientSnap.exists) return res.status(400).json({ success: false, message: "Recipient not found." });
 
-app.post('/webhook', (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error("Webhook signature verification failed:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+    const wordCount = message.trim().split(/\s+/).length;
+    const baseCost = {
+      "Happy_Turd.gif": 0,
+      "Angry_Turd.gif": 0,
+      "Unicorn_Turd.gif": 20,
+      "Exploding_Turd.gif": 20,
+      "Golden_Turd.gif": 25,
+    }[gif] || 0;
+    const extraCost = Math.max(0, wordCount - 5);
+    const totalCost = baseCost + extraCost;
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const phone = session.metadata?.phoneNumber;
-    const amount = session.amount_total / 100;
-    let coins = 0;
-    if (amount === 1) coins = 50;
-    else if (amount === 1.5) coins = 100;
-    else if (amount === 2) coins = 300;
+    const senderRef = db.collection("users").doc(senderId);
+    const senderSnap = await senderRef.get();
+    if (!senderSnap.exists) return res.status(400).json({ success: false, message: "Sender not found." });
 
-    if (phone && coins > 0) {
-      const userId = `user_${phone}`;
-      db.collection("users").doc(userId).update({
-        turdCoins: admin.firestore.FieldValue.increment(coins),
-      }).then(() => {
-        console.log(`💰 Added ${coins} TurdCoins to ${userId}`);
-      }).catch(err => {
-        console.error("🔥 Failed to update TurdCoins:", err);
+    const senderData = senderSnap.data();
+    const isUnlimited = senderData.isUnlimited || false;
+    if (!isUnlimited && senderData.turdCoins < totalCost) {
+      return res.status(400).json({ success: false, message: "Not enough TurdCoins." });
+    }
+
+    await db.collection("received").doc(formatted).set({
+      gif,
+      message,
+      seen: false,
+      timestamp: new Date().toISOString(),
+      _meta: { sender: senderId, anonymous: true }
+    }, { merge: true });
+
+    if (!isUnlimited) {
+      await senderRef.update({
+        turdCoins: admin.firestore.FieldValue.increment(-totalCost)
       });
     }
-  }
 
-  res.status(200).send('Webhook received');
+    const recipientData = recipientSnap.data();
+    if (recipientData.fcmToken && Expo.isExpoPushToken(recipientData.fcmToken)) {
+      await expo.sendPushNotificationsAsync([{
+        to: recipientData.fcmToken,
+        sound: "turd_alert.mp3",
+        title: "💩 You got turded!",
+        body: message || "A mysterious turd has appeared...",
+        data: { screen: "ReceivedTurd" },
+      }]);
+    }
+
+    res.json({ success: true, message: "Turd sent!" });
+  } catch (err) {
+    console.error("In-app send error:", err);
+    res.status(500).json({ success: false, message: "Backend error" });
+  }
 });
 
-app.post('/gift-turds', async (req, res) => {
+// 🎁 Gift Turds
+app.post("/gift-turds", async (req, res) => {
   const { senderPhone, recipientPhone, amount } = req.body;
-  if (!senderPhone || !recipientPhone || !amount || amount <= 0) {
-    return res.status(400).json({ error: "Missing or invalid data." });
-  }
-
   const senderId = `user_${formatPhoneNumber(senderPhone)}`;
   const recipientId = `user_${formatPhoneNumber(recipientPhone)}`;
 
@@ -87,154 +99,102 @@ app.post('/gift-turds', async (req, res) => {
     const senderSnap = await senderRef.get();
     const recipientSnap = await recipientRef.get();
 
-    if (!senderSnap.exists || !recipientSnap.exists) {
-      return res.status(404).json({ error: "Sender or recipient not found." });
-    }
+    if (!senderSnap.exists || !recipientSnap.exists) return res.status(404).json({ error: "User(s) not found" });
 
-    const senderData = senderSnap.data();
-    if (senderData.turdCoins < amount) {
-      return res.status(400).json({ error: "Insufficient TurdCoins." });
-    }
+    const senderCoins = senderSnap.data().turdCoins || 0;
+    if (senderCoins < amount) return res.status(400).json({ error: "Insufficient coins" });
 
-    await senderRef.update({
-      turdCoins: admin.firestore.FieldValue.increment(-amount)
-    });
+    await senderRef.update({ turdCoins: admin.firestore.FieldValue.increment(-amount) });
+    await recipientRef.update({ turdCoins: admin.firestore.FieldValue.increment(amount) });
 
-    await recipientRef.update({
-      turdCoins: admin.firestore.FieldValue.increment(amount)
-    });
-
-    await db.collection("transactions").add({
-      from: senderId,
-      to: recipientId,
-      amount,
-      timestamp: new Date().toISOString(),
-      type: "gift"
-    });
-
-    res.status(200).json({ success: true, message: "TurdCoins gifted successfully." });
+    res.json({ success: true });
   } catch (err) {
-    console.error("Gift TurdCoins failed:", err);
-    res.status(500).json({ error: "Gift transaction failed." });
+    console.error("Gift error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-app.post('/register', async (req, res) => {
+// 📱 User Registration
+app.post("/register", async (req, res) => {
   const { phoneNumber } = req.body;
-  if (!phoneNumber) {
-    return res.status(400).json({ error: "Phone number is required" });
-  }
+  if (!phoneNumber) return res.status(400).json({ error: "Phone is required" });
+
+  const formatted = formatPhoneNumber(phoneNumber);
+  const userId = `user_${formatted}`;
 
   try {
-    const formattedPhone = formatPhoneNumber(phoneNumber);
-    const userId = `user_${formattedPhone}`;
-    const userRef = db.collection("users").doc(userId);
-    await userRef.set({
-      phoneNumber: formattedPhone,
+    await db.collection("users").doc(userId).set({
+      phoneNumber: formatted,
       turdCoins: 100,
       isUnlimited: false,
     }, { merge: true });
 
-    console.log("✅ User successfully registered:", userId);
-    res.status(200).json({ success: true, userId });
+    res.json({ success: true, userId });
   } catch (err) {
-    console.error("Failed to register user:", err);
-    res.status(500).json({ error: "Registration failed" });
+    console.error("Register error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-app.post('/inapp-send', async (req, res) => {
-  const { senderId, recipientNumber, gif, message } = req.body;
+// 💸 Stripe Checkout
+app.post("/create-checkout-session", async (req, res) => {
+  const { priceId, phoneNumber } = req.body;
 
   try {
-    console.log(`In-app send request: ${senderId} -> ${recipientNumber}, gif: ${gif}, message: ${message}`);
-    const formatted = formatPhoneNumber(recipientNumber);
-    const recipientId = `user_${formatted}`;
-    const recipientRef = db.collection("users").doc(recipientId);
-    const recipientSnap = await recipientRef.get();
+    const successUrl = process.env.STRIPE_SUCCESS_URL || "https://turdogramme.com/success";
+    const cancelUrl = process.env.STRIPE_CANCEL_URL || "https://turdogramme.com/cancel";
 
-    if (!recipientSnap.exists) {
-      return res.status(400).json({ success: false, message: "Recipient not found." });
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: { phoneNumber }
+    });
+    res.json({ sessionUrl: session.url });
+  } catch (err) {
+    console.error("Stripe error:", err);
+    res.status(500).json({ error: "Checkout failed" });
+  }
+});
+
+// 🧾 Stripe Webhook
+app.post("/webhook", (req, res) => {
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      req.headers["stripe-signature"],
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    console.error("Webhook signature failed:", err.message);
+    return res.status(400).send(`Webhook error: ${err.message}`);
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    const phone = session.metadata?.phoneNumber;
+    const amount = session.amount_total / 100;
+
+    let coins = 0;
+    if (amount === 1) coins = 50;
+    else if (amount === 1.5) coins = 100;
+    else if (amount === 2) coins = 300;
+
+    if (phone && coins > 0) {
+      const userId = `user_${phone}`;
+      db.collection("users").doc(userId).update({
+        turdCoins: admin.firestore.FieldValue.increment(coins)
+      }).then(() => {
+        console.log(`💰 Credited ${coins} coins to ${userId}`);
+      }).catch(err => {
+        console.error("Failed to update coins:", err);
+      });
     }
-
-    const recipientData = recipientSnap.data();
-    await storeReceivedTurd(recipientNumber, gif, message, senderId);
-
-    if (recipientData.expoPushToken && Expo.isExpoPushToken(recipientData.expoPushToken)) {
-      await expo.sendPushNotificationsAsync([{
-        to: recipientData.expoPushToken,
-        sound: "turd_alert.mp3",
-        channelId: "turd-channel",
-        title: "💩 You got turded!",
-        body: message || "A mysterious turd has appeared...",
-        data: { screen: "ReceivedTurd" },
-        badge: 1
-      }]);
-
-      console.log("📲 Push notification sent!");
-    } else {
-      console.log("⚠️ No valid Expo token found for recipient.");
-    }
-
-    res.status(200).json({ success: true, message: "Turd sent successfully in-app!" });
-  } catch (error) {
-    console.error("Error sending turd:", error);
-    res.status(500).json({ success: false, message: "Failed to send turd." });
   }
+
+  res.sendStatus(200);
 });
 
-app.post('/whatsapp-send', async (req, res) => {
-  const { fromPhone, toPhone, gif, message } = req.body;
-
-  try {
-    console.log(`WhatsApp send request: ${fromPhone} -> ${toPhone}, gif: ${gif}, message: ${message}`);
-    const url = await sendTurdViaWhatsApp(toPhone, gif, message);
-    res.status(200).json({ success: true, message: "Turd prepared for WhatsApp!", url });
-  } catch (error) {
-    console.error("Error preparing WhatsApp turd:", error);
-    res.status(500).json({ success: false, message: "Failed to prepare WhatsApp turd." });
-  }
-});
-
-const storeReceivedTurd = async (recipientPhoneNumber, gifUrl, message = "", senderId = null) => {
-  try {
-    const formatted = formatPhoneNumber(recipientPhoneNumber);
-    const recipientRef = db.collection("received").doc(formatted);
-    const turdData = {
-      gif: gifUrl,
-      message,
-      seen: false,
-      timestamp: new Date().toISOString(),
-      _meta: {
-        sender: senderId,
-        anonymous: true
-      }
-    };
-
-    await recipientRef.set(turdData, { merge: true });
-    console.log("Turd successfully stored in Firestore.");
-  } catch (error) {
-    console.error("Error storing received turd:", error);
-  }
-};
-
-const formatPhoneNumber = (phoneNumber) => {
-  const cleaned = phoneNumber.replace(/[\s\-()]/g, "");
-  if (!cleaned.startsWith("+")) {
-    return "+" + cleaned.replace(/^0+/, "");
-  }
-  return cleaned;
-};
-
-const sendTurdViaWhatsApp = async (toPhone, gif, message) => {
-  const gifUrl = `${BASE_GIF_URL}${gif}`;
-  const fullMessage = `${message}\n\n💩 ${gifUrl}`;
-  const encodedMessage = encodeURIComponent(fullMessage);
-  const whatsappUrl = `https://wa.me/${toPhone}?text=${encodedMessage}`;
-  console.log("📎 WhatsApp URL (send manually or from client):", whatsappUrl);
-  return whatsappUrl;
-};
-
-const BASE_GIF_URL = "https://i.postimg.cc/";
-
-app.listen(4242, () => console.log('🚀 Turdpire backend running on port 4242'));
+app.listen(4242, () => console.log("🚽 TurdPire backend running on port 4242"));
