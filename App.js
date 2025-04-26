@@ -20,15 +20,6 @@ import i18n from "./i18n";
 
 import { db } from "./firebase"; // ✅ Your Firestore instance
 
-// ✅ Modular Firebase Firestore imports
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  onSnapshot
-} from "firebase/firestore";
 
 // ✅ All firestoreHelpers grouped
 import {
@@ -36,18 +27,17 @@ import {
   saveUser,
   sendTurd,
   sendTurdInApp,
-  flushReceivedTurd,
-  saveToMemoryBank,
   savePushToken
 } from "./firestoreHelpers";
-
+import { formatPhoneNumber } from "./firestoreHelpers";
 import { StripeProvider } from "@stripe/stripe-react-native";
 import Sound from 'react-native-sound';
-import Tts from 'react-native-tts';
+import * as Speech from 'expo-speech';
+
 
 import { navigationRef } from "./navigationRef";
 import { registerForPushNotificationsAsync } from "./notifications";
-
+import * as Notifications from 'expo-notifications';
 
 
 // Stripe publishable key
@@ -93,7 +83,7 @@ const SentScreen = ({ route, navigation }) => {
     </View>
   );
 };
-const API_URL = "http://18.171.168.140:3001/send";
+
 const SECRET_CODE = "1093";
 
 const TURD_PRICING = {
@@ -193,14 +183,14 @@ const UserProvider = ({ children }) => {
   );
 };
 const WelcomeScreen = ({ navigation }) => {
-  const { turdBalance, activateSecretMode, updateBalance } = useContext(UserContext);
+  const { turdBalance, activateSecretMode, updateBalance, isUnlimited } = useContext(UserContext);
   const [selectedLang, setSelectedLang] = useState(i18n.locale);
   const [codeInput, setCodeInput] = useState("");
   const [tapCount, setTapCount] = useState(0);
   const [showSecret, setShowSecret] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isRegistered, setIsRegistered] = useState(false);
-  const [soundOn, setSoundOn] = useState(true); // 🔊 Toggle state
+  const [soundOn, setSoundOn] = useState(true);
 
   useEffect(() => {
     const checkIfRegistered = async () => {
@@ -301,6 +291,11 @@ const WelcomeScreen = ({ navigation }) => {
         />
 
         <Text style={styles.subHeader}>{i18n.t("welcome.subtitle")}</Text>
+        {isUnlimited && (
+          <Text style={[styles.subHeader, { color: "#00FF00", fontWeight: "bold" }]}>
+            ∞ UNLIMITED TURDS ACTIVATED
+          </Text>
+        )}
 
         {showSecret && (
           <>
@@ -431,7 +426,6 @@ const sendTurdViaWhatsApp = async (phoneNumber, selectedGif, message) => {
   Linking.openURL(whatsappURL);
 };
 
-import { formatPhoneNumber } from "./firestoreHelpers"; // ✅ Import at the top
 
 const SendScreen = ({ navigation, route }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -440,7 +434,8 @@ const SendScreen = ({ navigation, route }) => {
   const { selectedGif, cost } = route.params || {};
   const { userId, turdBalance, updateBalance, isUnlimited } = useContext(UserContext);
 
-  const getGifFilename = (filename) => filename?.replace(".webp", ".gif").replace(".png", ".gif") || "";
+  const getGifFilename = (filename) =>
+    filename?.replace(".webp", ".gif").replace(".png", ".gif") || "";
 
   const isValidPhoneNumber = (number) => {
     const intlPattern = /^\+[1-9]\d{6,14}$/;
@@ -471,11 +466,12 @@ const SendScreen = ({ navigation, route }) => {
     const encodedMessage = encodeURIComponent(fullMessage);
     const waUrl = `https://wa.me/${recipientNumber.replace(/[^0-9]/g, "")}?text=${encodedMessage}`;
 
-    console.log('WhatsApp URL:', waUrl);
-
-    Linking.openURL(waUrl)
-      .then(() => console.log('WhatsApp opened successfully!'))
-      .catch((err) => console.error('Error opening WhatsApp:', err));
+    const supported = await Linking.canOpenURL(waUrl);
+    if (supported) {
+      await Linking.openURL(waUrl);
+    } else {
+      alert("WhatsApp not installed on this device.");
+    }
   };
 
   const handleSendTurd = async () => {
@@ -510,19 +506,27 @@ const SendScreen = ({ navigation, route }) => {
 
     try {
       if (deliveryMethod === "inApp") {
-        const formattedRecipient = formatPhoneNumber(phoneNumber); // ✅ Format it
+        const formattedRecipient = phoneNumber.replace(/[^0-9+]/g, '');
+        console.log("🟢 Sending in-app to:", formattedRecipient);
+        console.log("🟡 GIF to send:", gifToSend);
         const result = await sendTurdInApp(userId, formattedRecipient, gifToSend, message);
+        console.log("🟣 In-app result:", result);
 
         if (!result.success) throw new Error(result.message || "Failed to send turd.");
-        updateBalance(-totalCost);
       } else {
+        console.log("🟢 Sending via WhatsApp to:", phoneNumber);
         await sendTurdViaWhatsApp(phoneNumber, selectedGif, message);
+      }
+
+      // 💩 Always deduct coins here after successful send (unless unlimited)
+      if (!isUnlimited) {
+        updateBalance(-totalCost);
       }
 
       const randomMessage = TURD_SENT_MESSAGES[Math.floor(Math.random() * TURD_SENT_MESSAGES.length)];
       navigation.navigate("SentScreen", { selectedGif: gifToSend, message });
     } catch (error) {
-      console.error(error);
+      console.error("🔴 Send Error:", error);
       alert(i18n.t("send.fail"));
     }
   };
@@ -549,13 +553,19 @@ const SendScreen = ({ navigation, route }) => {
 
       <View style={{ flexDirection: "row", marginVertical: 10 }}>
         <TouchableOpacity
-          style={[styles.sendButton, { backgroundColor: deliveryMethod === "inApp" ? "#FFD700" : "#ccc" }]}
+          style={[
+            styles.sendButton,
+            { backgroundColor: deliveryMethod === "inApp" ? "#FFD700" : "#ccc" },
+          ]}
           onPress={() => setDeliveryMethod("inApp")}
         >
           <Text style={styles.sendButtonText}>{i18n.t("send.method_inapp")}</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.sendButton, { backgroundColor: deliveryMethod === "whatsapp" ? "#25D366" : "#ccc", marginLeft: 10 }]}
+          style={[
+            styles.sendButton,
+            { backgroundColor: deliveryMethod === "whatsapp" ? "#25D366" : "#ccc", marginLeft: 10 },
+          ]}
           onPress={() => setDeliveryMethod("whatsapp")}
         >
           <Text style={styles.sendButtonText}>{i18n.t("send.method_whatsapp")}</Text>
@@ -566,7 +576,9 @@ const SendScreen = ({ navigation, route }) => {
       <Text style={styles.costBreakdown}>
         {cost > 0 && `${i18n.t("send.cost.turd", { cost })} `}
         {message.trim().split(/\s+/).length > 5 &&
-          `${i18n.t("send.cost.extra", { extra: Math.max(0, message.trim().split(/\s+/).length - 5) })}`}
+          `${i18n.t("send.cost.extra", {
+            extra: Math.max(0, message.trim().split(/\s+/).length - 5),
+          })}`}
       </Text>
 
       <TouchableOpacity style={styles.sendButton} onPress={handleSendTurd}>
@@ -590,7 +602,7 @@ const BuyCoinsScreen = ({ navigation }) => {
 
   const handlePurchase = async (priceId) => {
     try {
-      const response = await fetch("https://turdogramme-backend.onrender.com/create-checkout-session", {
+      const response = await fetch("https://turd-backend.onrender.com/create-checkout-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -640,7 +652,7 @@ const BuyCoinsScreen = ({ navigation }) => {
 };
 
 const GiftScreen = ({ navigation }) => {
-  const { updateBalance } = useContext(UserContext);
+  const { updateBalance, turdBalance } = useContext(UserContext);
   const [recipientNumber, setRecipientNumber] = useState("");
   const [giftAmount, setGiftAmount] = useState("");
   const [isValidNumber, setIsValidNumber] = useState(true);
@@ -653,38 +665,45 @@ const GiftScreen = ({ navigation }) => {
   const sendGift = async () => {
     const amount = parseInt(giftAmount);
     if (!recipientNumber || isNaN(amount) || amount <= 0) {
-      alert(i18n.t("gift.invalid_input"));
+      alert(i18n.t("gift.invalid_input", { defaultValue: "Invalid input." }));
       return;
     }
 
     if (!validatePhoneNumber(recipientNumber)) {
-      alert(i18n.t("gift.error_invalid_number"));
+      alert(i18n.t("gift.error_invalid_number", { defaultValue: "Invalid phone number." }));
       return;
     }
 
     try {
-      const response = await fetch("https://turdogramme-backend.onrender.com/gift-tc", {
+      const senderPhone = await AsyncStorage.getItem("userPhone");
+
+      const response = await fetch("https://turd-backend.onrender.com/gift-turds", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: recipientNumber, amount }),
+        body: JSON.stringify({ senderPhone, recipientPhone: recipientNumber, amount }),
       });
 
       if (response.ok) {
-        updateBalance(-amount);
-        alert(i18n.t("gift.success", { amount }));
+        // 👇 Instead of fetching a doc, just deduct locally
+        updateBalance(-amount); 
+
+        alert(`🎉 Successfully gifted ${amount} TC!`);
         navigation.goBack();
       } else {
-        alert(i18n.t("gift.failed"));
+        alert(i18n.t("gift.failed", { defaultValue: "Gift failed. Please try again." }));
       }
     } catch (error) {
       console.error("Gift error:", error);
-      alert(i18n.t("common.error_generic"));
+      alert(i18n.t("common.error_generic", { defaultValue: "Something went wrong. Please try again." }));
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>{i18n.t("gift.title")}</Text>
+      <Text style={styles.subHeader}>
+        💰 {i18n.t("gift.current_balance", { defaultValue: "Current Balance:" })} {turdBalance} TC
+      </Text>
       <TextInput
         style={[styles.input, !isValidNumber && { borderColor: "red" }]}
         placeholder={i18n.t("gift.placeholder_number")}
@@ -697,8 +716,10 @@ const GiftScreen = ({ navigation }) => {
       />
       {!isValidNumber && (
         <Text style={{ color: "red", marginBottom: 5 }}>
-  {i18n.t("gift.invalid_format")}
-</Text>
+          {i18n.t("gift.invalid_format", {
+            defaultValue: "Number must be in international format (e.g. +441234567890)"
+          })}
+        </Text>
       )}
       <TextInput
         style={styles.input}
@@ -730,18 +751,10 @@ const ReceivedTurdScreen = ({ navigation }) => {
 
       const result = await getReceivedTurd(storedPhone);
       if (result && result.gif) {
+        console.log("✅ Turd received:", result);
         setTurd(result);
 
-        const soundSetting = await AsyncStorage.getItem("soundOn");
-        const isSoundOn = soundSetting === null || soundSetting === "true";
-
-        if (isSoundOn) {
-          playTurdAlert();
-          Vibration.vibrate();
-        }
-
-        // 🔊 Speak the turd message using selected language
-        const lang = i18n.locale || 'en'; // fallback to English
+        const lang = i18n.locale || 'en';
         if (result.message) {
           Speech.speak(result.message, {
             language: lang,
@@ -749,18 +762,13 @@ const ReceivedTurdScreen = ({ navigation }) => {
             pitch: 1.0,
           });
         }
+      } else {
+        console.log("❌ No new turds found");
       }
     };
 
     fetchTurd();
   }, []);
-
-  const handleSave = async () => {
-    if (!userPhone || !turd) return;
-    await saveToMemoryBank(userPhone, turd.gif, turd.message);
-    alert(i18n.t("common.saved_to_memory"));
-    navigation.goBack();
-  };
 
   if (!turd) {
     return (
@@ -780,24 +788,16 @@ const ReceivedTurdScreen = ({ navigation }) => {
       <Text style={styles.subHeader}>{i18n.t("received.anonymous")}</Text>
       <Image source={{ uri: turd.gif }} style={styles.turdImage} resizeMode="contain" />
       <Text style={styles.subHeader}>{turd.message}</Text>
-
-      <View style={{ flexDirection: 'row', marginTop: 20 }}>
-        <TouchableOpacity style={styles.sendButton} onPress={handleFlush}>
-          <Text style={styles.sendButtonText}>{i18n.t("common.flush")}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.sendButton, { marginLeft: 10 }]} onPress={handleSave}>
-          <Text style={styles.sendButtonText}>{i18n.t("common.saved")}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>{i18n.t("common.back")}</Text>
-        </TouchableOpacity>
-      </View>
+  
+      <TouchableOpacity
+        style={[styles.backButton, { marginTop: 20 }]}
+        onPress={() => navigation.goBack()}
+      >
+        <Text style={styles.backButtonText}>{i18n.t("common.back")}</Text>
+      </TouchableOpacity>
     </View>
-  );
+  );  
 };
-
 export default function App() {
   useEffect(() => {
     registerForPushNotificationsAsync().then(async (token) => {
@@ -805,26 +805,37 @@ export default function App() {
         console.log("✅ Push Token:", token);
         const phone = await AsyncStorage.getItem('userPhone');
         const userId = phone ? `user_${phone}` : null;
-  
+
         if (userId) {
           await savePushToken(userId, token);
         }
       }
     });
-  
-    // 👇 Handle tap on notification
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+
+    // 🔔 Play Turd Alert sound + vibrate on notification receipt (background/locked screen)
+    const receiveSub = Notifications.addNotificationReceivedListener(notification => {
+      const screen = notification.request.content.data?.screen;
+      if (screen === "ReceivedTurd") {
+        playTurdAlert();         // 🔊 Custom ringtone
+        Vibration.vibrate();     // 📳 Vibration
+      }
+    });
+
+    // 📲 Navigate to ReceivedTurd screen on tap
+    const tapSub = Notifications.addNotificationResponseReceivedListener(response => {
       const screen = response.notification.request.content.data?.screen;
       if (screen === "ReceivedTurd") {
         navigationRef.navigate("ReceivedTurd");
       }
     });
-  
+
+    // 🧼 Clean up both listeners
     return () => {
-      subscription.remove();
+      receiveSub.remove();
+      tapSub.remove();
     };
   }, []);
-  
+
   return (
     <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
       <UserProvider>
@@ -886,3 +897,5 @@ const styles = StyleSheet.create({
   },
   
 });
+import { AppRegistry } from 'react-native';
+AppRegistry.registerComponent('main', () => App);

@@ -7,15 +7,11 @@
     "orientation": "portrait",
     "icon": "./assets/TurdogrammeIcon.png",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/Lord_Turdingham.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#6A0DAD"
-    },
     "android": {
       "package": "com.anonymous.turdogramme",
       "permissions": [
-        "INTERNET"
+        "INTERNET",
+        "NOTIFICATIONS"
       ],
       "intentFilters": [
         {
@@ -39,6 +35,9 @@
     },
     "assetBundlePatterns": [
       "**/*"
+    ],
+    "plugins": [
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
