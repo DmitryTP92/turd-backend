@@ -26,7 +26,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Render automatically manages PORT
 const PORT = process.env.PORT || 4242;
 
 // Create Stripe Checkout Session
@@ -116,9 +115,9 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// Send in-app turd (store in Firestore) + Push Notification + TurdCoin Deduction
+// Send in-app turd (✅ now using senderPhone)
 app.post("/inapp-send", async (req, res) => {
-  const { to, gif, message } = req.body;
+  const { senderPhone, to, gif, message } = req.body;
   try {
     // Save turd to Firestore
     await db.collection("turdMessages").add({
@@ -129,7 +128,7 @@ app.post("/inapp-send", async (req, res) => {
     });
 
     // Deduct TurdCoins from sender
-    const senderId = "user_" + formatPhoneNumber(to); // Based on recipient phone (cleaned)
+    const senderId = "user_" + formatPhoneNumber(senderPhone); // ✅ Correct sender
     const senderRef = db.collection("users").doc(senderId);
     const senderSnap = await senderRef.get();
 
@@ -138,12 +137,12 @@ app.post("/inapp-send", async (req, res) => {
       if (!senderData.isUnlimited) {
         let baseCost = 0;
 
-        // 🧠 Match Turd Cost
-        const gifFilename = gif.split("/").pop(); // Get filename from URL
+        // Match Turd Cost
+        const gifFilename = gif.split("/").pop();
         switch (gifFilename) {
           case "Happy_Turd.gif":
           case "Angry_Turd.gif":
-            baseCost = 5;
+            baseCost = 0;
             break;
           case "Exploding_Turd.gif":
           case "Unicorn_Turd.gif":
@@ -153,10 +152,10 @@ app.post("/inapp-send", async (req, res) => {
             baseCost = 25;
             break;
           default:
-            baseCost = 5;
+            baseCost = 0;
         }
 
-        // ➕ Add extra word cost
+        // Add extra word cost
         const wordCount = message ? message.trim().split(/\s+/).length : 0;
         const extraWords = Math.max(0, wordCount - 5);
         const extraCost = extraWords * 1;
@@ -198,7 +197,6 @@ app.post("/inapp-send", async (req, res) => {
 // Get and delete received turd
 app.post("/get-received-turd", async (req, res) => {
   const { phoneNumber } = req.body;
-
   try {
     const turdsRef = db.collection("turdMessages");
     const snapshot = await turdsRef.where("to", "==", phoneNumber).orderBy("sentAt", "asc").limit(1).get();
@@ -210,9 +208,7 @@ app.post("/get-received-turd", async (req, res) => {
     const doc = snapshot.docs[0];
     const turdData = doc.data();
 
-    // Delete the turd after fetching
     await doc.ref.delete();
-
     res.status(200).json(turdData);
   } catch (error) {
     console.error("Get/Delete turd error:", error);
