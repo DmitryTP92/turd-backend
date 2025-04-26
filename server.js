@@ -115,7 +115,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// Send in-app turd (✅ now using senderPhone)
+// Send in-app turd (✅ fixed here)
 app.post("/inapp-send", async (req, res) => {
   const { senderPhone, to, gif, message } = req.body;
   try {
@@ -128,7 +128,7 @@ app.post("/inapp-send", async (req, res) => {
     });
 
     // Deduct TurdCoins from sender
-    const senderId = "user_" + formatPhoneNumber(senderPhone); // ✅ Correct sender
+    const senderId = "user_" + formatPhoneNumber(senderPhone);
     const senderRef = db.collection("users").doc(senderId);
     const senderSnap = await senderRef.get();
 
@@ -137,7 +137,6 @@ app.post("/inapp-send", async (req, res) => {
       if (!senderData.isUnlimited) {
         let baseCost = 0;
 
-        // Match Turd Cost
         const gifFilename = gif.split("/").pop();
         switch (gifFilename) {
           case "Happy_Turd.gif":
@@ -155,7 +154,6 @@ app.post("/inapp-send", async (req, res) => {
             baseCost = 0;
         }
 
-        // Add extra word cost
         const wordCount = message ? message.trim().split(/\s+/).length : 0;
         const extraWords = Math.max(0, wordCount - 5);
         const extraCost = extraWords * 1;
