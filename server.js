@@ -1,5 +1,3 @@
-// server.js
-
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -9,13 +7,11 @@ const fetch = require("node-fetch");
 const { formatPhoneNumber } = require("./utils");
 const { Expo } = require("expo-server-sdk");
 
-// Load environment variables
 dotenv.config();
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const expo = new Expo();
 
-// Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)),
 });
@@ -96,10 +92,10 @@ app.post("/gift-turds", async (req, res) => {
       await recipientRef.set({ turdCoins: amount, isUnlimited: false });
     }
 
-    res.status(200).json({ message: "Gift successful" });
+    res.status(200).json({ success: true });
   } catch (error) {
     console.error("Gift error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(200).json({ success: false, message: error.message });
   }
 });
 
@@ -108,18 +104,17 @@ app.post("/register", async (req, res) => {
   const { userId, token } = req.body;
   try {
     await db.collection("users").doc(userId).update({ pushToken: token });
-    res.status(200).json({ message: "Push token saved" });
+    res.status(200).json({ success: true });
   } catch (error) {
     console.error("Save push token error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Send in-app turd (✅ fixed here)
+// Send in-app turd
 app.post("/inapp-send", async (req, res) => {
   const { senderPhone, to, gif, message } = req.body;
   try {
-    // Save turd to Firestore
     await db.collection("turdMessages").add({
       to,
       gif,
@@ -127,7 +122,6 @@ app.post("/inapp-send", async (req, res) => {
       sentAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Deduct TurdCoins from sender
     const senderId = "user_" + formatPhoneNumber(senderPhone);
     const senderRef = db.collection("users").doc(senderId);
     const senderSnap = await senderRef.get();
@@ -165,8 +159,7 @@ app.post("/inapp-send", async (req, res) => {
       }
     }
 
-    // Fetch recipient push token
-    const recipientRef = db.collection("users").doc("user_" + to.replace(/[^0-9+]/g, ''));
+    const recipientRef = db.collection("users").doc("user_" + formatPhoneNumber(to));
     const recipientSnap = await recipientRef.get();
     if (recipientSnap.exists) {
       const recipientData = recipientSnap.data();
@@ -179,8 +172,8 @@ app.post("/inapp-send", async (req, res) => {
             sound: "ringtone.mp3",
             title: "Incoming Turd!",
             body: "Someone sent you a Turd 💩",
-            data: { screen: "ReceivedTurd" }
-          }
+            data: { screen: "ReceivedTurd" },
+          },
         ]);
       }
     }
@@ -188,11 +181,11 @@ app.post("/inapp-send", async (req, res) => {
     res.status(200).json({ success: true });
   } catch (error) {
     console.error("In-app send error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Get and delete received turd
+// Get received turd
 app.post("/get-received-turd", async (req, res) => {
   const { phoneNumber } = req.body;
   try {
@@ -210,11 +203,10 @@ app.post("/get-received-turd", async (req, res) => {
     res.status(200).json(turdData);
   } catch (error) {
     console.error("Get/Delete turd error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Start Server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
