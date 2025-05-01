@@ -3,9 +3,8 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const Stripe = require("stripe");
 const admin = require("firebase-admin");
-const fetch = require("node-fetch");
-const { formatPhoneNumber } = require("./utils");
 const { Expo } = require("expo-server-sdk");
+const { formatPhoneNumber } = require("./utils");
 
 dotenv.config();
 
@@ -17,17 +16,14 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
-
 const app = express();
 app.use(cors());
 app.use(express.json());
-
 const PORT = process.env.PORT || 4242;
 
-// Create Stripe Checkout Session
+// 🟡 Create Stripe Checkout Session
 app.post("/create-checkout-session", async (req, res) => {
   const { priceId } = req.body;
-
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -36,7 +32,6 @@ app.post("/create-checkout-session", async (req, res) => {
       success_url: "https://turd-backend.onrender.com/success",
       cancel_url: "https://turd-backend.onrender.com/cancel",
     });
-
     res.json({ sessionUrl: session.url });
   } catch (error) {
     console.error("Stripe session error:", error);
@@ -44,10 +39,9 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 
-// Stripe Webhook
+// 🟡 Stripe Webhook
 app.post("/webhook", express.raw({ type: "application/json" }), (request, response) => {
   const sig = request.headers["stripe-signature"];
-
   let event;
   try {
     event = stripe.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
@@ -55,18 +49,15 @@ app.post("/webhook", express.raw({ type: "application/json" }), (request, respon
     console.error("Webhook Error:", err.message);
     return response.status(400).send(`Webhook Error: ${err.message}`);
   }
-
   if (event.type === "checkout.session.completed") {
     console.log("Payment successful.");
   }
-
   response.status(200).send("Received");
 });
 
-// Gift TurdCoins
+// 🟡 Gift TurdCoins
 app.post("/gift-turds", async (req, res) => {
   const { senderPhone, recipientPhone, amount } = req.body;
-
   try {
     const senderId = "user_" + formatPhoneNumber(senderPhone);
     const recipientId = "user_" + formatPhoneNumber(recipientPhone);
@@ -99,22 +90,43 @@ app.post("/gift-turds", async (req, res) => {
   }
 });
 
-// Save push token
-app.post("/register", async (req, res) => {
-  const { userId, token } = req.body;
-  try {
-    await db.collection("users").doc(userId).update({ pushToken: token });
-    res.status(200).json({ success: true });
-  } catch (error) {
-    console.error("Save push token error:", error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// Send in-app turd
+// 🟡 Send In-App Turd
 app.post("/inapp-send", async (req, res) => {
   const { senderPhone, to, gif, message } = req.body;
   try {
+    const senderId = "user_" + formatPhoneNumber(senderPhone);
+    const senderRef = db.collection("users").doc(senderId);
+    const senderSnap = await senderRef.get();
+
+    if (!senderSnap.exists) {
+      throw new Error("Sender not found");
+    }
+
+    const senderData = senderSnap.data();
+    let baseCost = 0;
+
+    const gifFilename = gif.split("/").pop();
+    switch (gifFilename) {
+      case "Exploding_Turd.gif":
+      case "Unicorn_Turd.gif":
+        baseCost = 20;
+        break;
+      case "Golden_Turd.gif":
+        baseCost = 25;
+        break;
+      default:
+        baseCost = 0;
+    }
+
+    const wordCount = message ? message.trim().split(/\s+/).length : 0;
+    const extraWords = Math.max(0, wordCount - 5);
+    const extraCost = extraWords * 1;
+    const totalCost = baseCost + extraCost;
+
+    if (!senderData.isUnlimited && senderData.turdCoins < totalCost) {
+      throw new Error("Not enough TurdCoins.");
+    }
+
     await db.collection("turdMessages").add({
       to,
       gif,
@@ -122,43 +134,11 @@ app.post("/inapp-send", async (req, res) => {
       sentAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    const senderId = "user_" + formatPhoneNumber(senderPhone);
-    const senderRef = db.collection("users").doc(senderId);
-    const senderSnap = await senderRef.get();
-
-    if (senderSnap.exists) {
-      const senderData = senderSnap.data();
-      if (!senderData.isUnlimited) {
-        let baseCost = 0;
-
-        const gifFilename = gif.split("/").pop();
-        switch (gifFilename) {
-          case "Happy_Turd.gif":
-          case "Angry_Turd.gif":
-            baseCost = 0;
-            break;
-          case "Exploding_Turd.gif":
-          case "Unicorn_Turd.gif":
-            baseCost = 20;
-            break;
-          case "Golden_Turd.gif":
-            baseCost = 25;
-            break;
-          default:
-            baseCost = 0;
-        }
-
-        const wordCount = message ? message.trim().split(/\s+/).length : 0;
-        const extraWords = Math.max(0, wordCount - 5);
-        const extraCost = extraWords * 1;
-
-        const totalCost = baseCost + extraCost;
-        const newBalance = Math.max(0, (senderData.turdCoins || 0) - totalCost);
-
-        await senderRef.update({ turdCoins: newBalance });
-      }
+    if (!senderData.isUnlimited) {
+      await senderRef.update({ turdCoins: senderData.turdCoins - totalCost });
     }
 
+    // 🟡 Push notification
     const recipientRef = db.collection("users").doc("user_" + formatPhoneNumber(to));
     const recipientSnap = await recipientRef.get();
     if (recipientSnap.exists) {
@@ -185,7 +165,7 @@ app.post("/inapp-send", async (req, res) => {
   }
 });
 
-// Get received turd
+// 🟡 Fetch Received Turd
 app.post("/get-received-turd", async (req, res) => {
   const { phoneNumber } = req.body;
   try {
@@ -198,11 +178,22 @@ app.post("/get-received-turd", async (req, res) => {
 
     const doc = snapshot.docs[0];
     const turdData = doc.data();
-
     await doc.ref.delete();
     res.status(200).json(turdData);
   } catch (error) {
     console.error("Get/Delete turd error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 🟡 Save Push Token
+app.post("/register", async (req, res) => {
+  const { userId, token } = req.body;
+  try {
+    await db.collection("users").doc(userId).update({ pushToken: token });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Save push token error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
